@@ -1,0 +1,101 @@
+import sys
+import argparse
+import itertools
+
+import irc.client
+import Queue
+import threading
+
+
+
+q = Queue.Queue(maxsize=0)
+
+target = None
+"The nick or channel to which to send messages"
+
+def on_connect(connection, event):
+    if irc.client.is_channel(target):
+        connection.join(target)
+        return
+    main_loop(connection)
+
+def on_join(connection, event):
+    main_loop(connection)
+
+def get_lines():
+    while True:
+        yield sys.stdin.readline().strip()
+
+def main_loop(connection):
+    if not q.empty():
+        connection.privmsg(target, q.get())
+    else:
+        connection.privmsg(target, "CACCA")
+    #connection.quit("Using irc.client.py")
+
+def on_disconnect(connection, event):
+    raise SystemExit()
+
+
+def on_msg(connection, e):
+        print "<%s>: %s" %(e.source.nick,e.arguments[0])
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('server')
+    parser.add_argument('nickname')
+    parser.add_argument('target', help="a nickname or channel")
+    parser.add_argument('-p', '--port', default=6667, type=int)
+    return parser.parse_args()
+
+
+class IRCBotto(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        global target
+
+        args = get_args()
+        target = args.target
+
+        client = irc.client.IRC()
+        try:
+            c = client.server().connect(args.server, args.port, args.nickname)
+        except irc.client.ServerConnectionError:
+            print(sys.exc_info()[1])
+            raise SystemExit(1)
+
+        c.add_global_handler("welcome", on_connect)
+        c.add_global_handler("join", on_join)
+        c.add_global_handler("disconnect", on_disconnect)
+        c.add_global_handler("privmsg", on_msg)
+
+    def run(self):
+        client.process_forever()
+
+    def stop(self):
+        #active_queues.remove(self.mailbox)
+        #self.mailbox.put("shutdown")
+        self.join()
+
+
+
+
+class TT(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.abba="no"
+
+    def run(self):
+        while True:
+            q.put(raw_input( 'che$ ' ))
+
+    def stop(self):
+        #active_queues.remove(self.mailbox)
+        #self.mailbox.put("shutdown")
+        self.join()
+
+if __name__ == '__main__':
+    t1 = IRCBotto()
+    t2 = TT()
+    t1.start()
+    t2.start()
