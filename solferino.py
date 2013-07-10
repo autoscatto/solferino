@@ -31,7 +31,7 @@ NICK_I="buzzirco"
 TIMEOUT=2
 
 #### retroshare bridged lobbies (exact name)
-BRIDGECHAN="btest"
+BRIDGECHAN="retroshare devel"
 
 #### number of retry for join to retroshare lobbie
 
@@ -48,7 +48,22 @@ q_i2r = Queue.Queue(maxsize=0)
 q_r2i = Queue.Queue(maxsize=0)
 target = None
 
-
+#TODO: solve problems instead of putting patches
+def decode(bytes): 
+   if len(bytes)<508: #ugly hack with html (such as sharing certificates, for example), they produce large messages that will not be sent on irc (also to avoid flooding, limit to 512 bytes) 
+       try: 
+        text = bytes.decode('utf-8')
+       except UnicodeDecodeError: 
+        try: 
+            text = bytes.decode('iso-8859-1')
+        except UnicodeDecodeError: 
+            try:
+               text = bytes.decode('cp1252')
+            except:
+                text=""
+   else:
+        text=""    
+   return text
 
 
 
@@ -63,7 +78,8 @@ def get_args():
 def printazza(connection):
             while not q_r2i.empty():
                 nick,nmsg= q_r2i.get()
-                chanmsg="<%s>: %s" %(nick,nmsg)
+                decodedmsg=decode(nmsg)
+                chanmsg="<%s>: %s" %(nick,decodedmsg)
                 q_r2i.task_done()
                 connection.privmsg(target,' '.join(chanmsg.split('\n')))
                 time.sleep(timeout)
@@ -108,7 +124,10 @@ class IRCBotto(threading.Thread):
     def run(self):
         while self.runevent.is_set():
             printazza(self.client.connections[0]) #XXX: painful hack
-            self.client.process_once(0.2) #TODO: here too busy waiting, is necessary to find a sensible way to make a event driven architecture
+            try:
+                self.client.process_once(0.2) #TODO: here too busy waiting, is necessary to find a sensible way to make a event driven architecture
+            except:
+                pass #from bad to worse
         print "bona bimbi [%s]" % self.__class__.__name__
 
     def stop(self):
