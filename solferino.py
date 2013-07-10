@@ -237,10 +237,14 @@ class RetrhoshareBot(threading.Thread):
 
                   ans = self.rs.response(self.chat_register_id, timeout)
                   if ans:
-                    (msg_id, msg_body) = ans
-                    resp = self.parser.construct(msg_id, msg_body)
-                    msgbody=html2text.html2text(resp.msg.msg)
-                    q_r2i.put( (resp.msg.peer_nickname,msgbody))
+                    try:
+                        (msg_id, msg_body) = ans
+                        resp = self.parser.construct(msg_id, msg_body)
+
+                        msgbody=html2text.html2text(resp.msg.msg)
+                        q_r2i.put( (resp.msg.peer_nickname,msgbody))
+                    except:
+                        pass
             print "bona bimbi [%s]" % self.__class__.__name__
 
     def stop(self):
