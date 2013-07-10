@@ -16,6 +16,7 @@ from pyrs.proto import system_pb2
 from pyrs.proto import chat_pb2
 import pyrs.test.auth
 import html2text
+import unicodedata
 
 # This will load auth parameters from file 'auth.txt'
 # ONLY use for tests - make the user login properly.
@@ -31,7 +32,7 @@ NICK_I="buzzirco"
 TIMEOUT=2
 
 #### retroshare bridged lobbies (exact name)
-BRIDGECHAN="retroshare devel"
+BRIDGECHAN="dtest"
 
 #### number of retry for join to retroshare lobbie
 
@@ -53,16 +54,16 @@ def decode(bytes):
    if len(bytes)<508: #ugly hack with html (such as sharing certificates, for example), they produce large messages that will not be sent on irc (also to avoid flooding, limit to 512 bytes) 
        try: 
         text = bytes.decode('utf-8')
-       except UnicodeDecodeError: 
+       except: 
         try: 
             text = bytes.decode('iso-8859-1')
-        except UnicodeDecodeError: 
+        except: 
             try:
                text = bytes.decode('cp1252')
             except:
-                text=""
+                text=unicodedata.normalize('NFKD', bytes).encode('ascii','ignore')
    else:
-        text=""    
+        text="*MSG TOO LONG!*"    
    return text
 
 
