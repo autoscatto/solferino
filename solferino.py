@@ -32,7 +32,7 @@ NICK_I="buzzirco"
 TIMEOUT=2
 
 #### retroshare bridged lobbies (exact name)
-BRIDGECHAN="dtest"
+BRIDGECHAN="ktest"
 
 #### number of retry for join to retroshare lobbie
 
@@ -79,11 +79,12 @@ def get_args():
 def printazza(connection):
             while not q_r2i.empty():
                 nick,nmsg= q_r2i.get()
-                decodedmsg=decode(nmsg)
-                chanmsg="<%s>: %s" %(nick,decodedmsg)
-                q_r2i.task_done()
-                connection.privmsg(target,' '.join(chanmsg.split('\n')))
-                time.sleep(timeout)
+                if len(nick) >0 and len(nmsg)>0:
+                    decodedmsg=decode(nmsg)
+                    chanmsg="<%s>: %s" %(nick,decodedmsg)
+                    q_r2i.task_done()
+                    connection.privmsg(target,' '.join(chanmsg.split('\n')))
+                    time.sleep(timeout)
 
 
 # IRC part
@@ -118,7 +119,7 @@ class IRCBotto(threading.Thread):
             raise SystemExit(1)
 
         c.add_global_handler("welcome", self.on_connect)
-        c.add_global_handler("join", self.on_join)
+        #c.add_global_handler("join", self.on_join) NAAAAA
         c.add_global_handler("disconnect", self.on_disconnect)
         c.add_global_handler("pubmsg", self.on_msg)
 
@@ -260,11 +261,12 @@ class RetrhoshareBot(threading.Thread):
                     try:
                         (msg_id, msg_body) = ans
                         resp = self.parser.construct(msg_id, msg_body)
-
-                        msgbody=html2text.html2text(resp.msg.msg)
-                        q_r2i.put( (resp.msg.peer_nickname,msgbody))
+                        if resp.msg.id.chat_type == chat_pb2.TYPE_LOBBY and resp.msg.id.chat_id==self.lobby_id: #XXX: check if the msg is on right lobbie
+                            msgbody=html2text.html2text(resp.msg.msg)
+                            q_r2i.put( (resp.msg.peer_nickname,msgbody))
                     except:
                         pass
+            self.join_leave(self.lobby_id,False)
             print "bona bimbi [%s]" % self.__class__.__name__
 
     def stop(self):
